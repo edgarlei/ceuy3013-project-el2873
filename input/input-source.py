@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 %config InlineBackend.figure_formats = ['svg']
 
 # Checking versions, updating to newest available
-!pip install --upgrade pandas
+#!pip install --upgrade pandas
 #!pip install --upgrade numpy
 #!pip install --upgrade scipy
 #!pip install --upgrade stats
@@ -88,3 +88,42 @@ def csv_redux(datafile):
     sample['year'] = sample.starttime[int(i)][0:4]
     sample['month'] = sample.starttime[int(i)][5:7]
   return sample
+
+# --- CSV Redux, Concatenation, and Extraction
+'''Because of the size of each original data file, it was better to run them through
+individually instead of all at once (hence the lack of a for loop in the csv_redux
+function). This also allows the user to check for individual file errors without
+stopping the entire process all at once.'''
+jan19 = csv_redux('201901-citibike-tripdata.csv')
+feb19 = csv_redux('201902-citibike-tripdata.csv')
+mar19 = csv_redux('201903-citibike-tripdata.csv')
+apr19 = csv_redux('201904-citibike-tripdata.csv')
+may19 = csv_redux('201905-citibike-tripdata.csv')
+jun19 = csv_redux('201906-citibike-tripdata.csv')
+jul19 = csv_redux('201907-citibike-tripdata.csv')
+aug19 = csv_redux('201908-citibike-tripdata.csv')
+sep19 = csv_redux('201909-citibike-tripdata.csv')
+oct19 = csv_redux('201910-citibike-tripdata.csv')
+nov19 = csv_redux('201911-citibike-tripdata.csv')
+dec19 = csv_redux('201912-citibike-tripdata.csv')
+jan20 = csv_redux('202001-citibike-tripdata.csv')
+feb20 = csv_redux('202002-citibike-tripdata.csv')
+mar20 = csv_redux('202003-citibike-tripdata.csv')
+apr20 = csv_redux('202004-citibike-tripdata.csv')
+may20 = csv_redux('202005-citibike-tripdata.csv')
+jun20 = csv_redux('202006-citibike-tripdata.csv')
+jul20 = csv_redux('202007-citibike-tripdata.csv')
+aug20 = csv_redux('202008-citibike-tripdata.csv')
+sep20 = csv_redux('202009-citibike-tripdata.csv')
+oct20 = csv_redux('202010-citibike-tripdata.csv')
+nov20 = csv_redux('202011-citibike-tripdata.csv')
+'''Once all the original datasets are reduced, they are all concatenated into a
+new master dataset for use in the program proper.'''
+comb = pd.concat([jan19, feb19, mar19, apr19, may19, jun19, jul19, aug19, sep19,
+                  oct19, nov19, dec19, jan20, feb20, mar20, apr20, may20, jun20,
+                  jul20, aug20, sep20, oct20, nov20])
+comb.to_csv('masterdata.csv')
+print(comb)
+
+# from google.colab import files
+# files.download('masterdata.csv')
