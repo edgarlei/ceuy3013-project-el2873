@@ -1,5 +1,5 @@
 # Please have patience when running the code.
-# It takes a few minutes to fully run through,
+# It takes around ten minutes to fully run through,
 # and then the figures take an additional minute
 # or so to show up.
 
@@ -12,74 +12,75 @@ import math
 import statistics as st
 import matplotlib.pyplot as plt
 
-def setup():
-    # --- SETUP ------------------------------
-    '''Because of the sheer size of the data files and the unwieldiness of having to
-    run through nearly 50 million data points each time, it was decided that a sample
-    of the dataset was to be used, while making sure that it is still reflective enough
-    of the overall datset. This also prevents overfitting, which would cause any
-    conclusions or analysis to be too overly specific.'''
-    def csv_redux(datafile):
+# --- SETUP ------------------------------
+'''Because of the sheer size of the data files and the unwieldiness of having to
+run through nearly 50 million data points each time, it was decided that a sample
+of the dataset was to be used, while making sure that it is still reflective enough
+of the overall datset. This also prevents overfitting, which would cause any
+conclusions or analysis to be too overly specific.'''
+def csv_redux(datafile):
 
-        '''Reads CSV file and converts contents into dataframe.'''
-        data = pd.read_csv(datafile)
+    '''Reads CSV file and converts contents into dataframe.'''
+    data = pd.read_csv(datafile)
 
-        '''Retrieving only the necessary columns. The latitudes of the start and end
-        stations and their corresponding station IDs, as well as the customer IDs, are
-        not relevant to the purposes of this project. In addition, the stop times are
-        not needed because the month and year of each trip is determined by the time at
-        which they began.'''
-        data_cols = data[['tripduration', 'starttime', 'start station name', 'end station name', 'usertype', 'birth year', 'gender']]
+    '''Retrieving only the necessary columns. The latitudes of the start and end
+    stations and their corresponding station IDs, as well as the customer IDs, are
+    not relevant to the purposes of this project. In addition, the stop times are
+    not needed because the month and year of each trip is determined by the time at
+    which they began.'''
+    data_cols = data[['tripduration', 'starttime', 'start station name', 'end station name', 'usertype', 'birth year', 'gender']]
 
-        '''Removing all trips with a duration of at least five hours. Chances are the
-        high duration of most of these trips are due to improper docking. For example,
-        some of the longest "trips" were reported to be at least several days long.'''
-        data_err = data_cols[data_cols.tripduration < 18000]
+    '''Removing all trips with a duration of at least five hours. Chances are the
+    high duration of most of these trips are due to improper docking. For example,
+    some of the longest "trips" were reported to be at least several days long.'''
+    data_err = data_cols[data_cols.tripduration < 18000]
 
-        '''Removing all trips shorter than five minutes that start and end at the same
-        CitiBike station. These also seem likely to be the result of user error, or if
-        not, do not constitute significant trips.'''
-        data_fil = data_err.drop(data_err[(data_err['tripduration'] < 300) & (data_err['start station name'] == data_err['end station name'])].index)
+    '''Removing all trips shorter than five minutes that start and end at the same
+    CitiBike station. These also seem likely to be the result of user error, or if
+    not, do not constitute significant trips.'''
+    data_fil = data_err.drop(data_err[(data_err['tripduration'] < 300) & (data_err['start station name'] == data_err['end station name'])].index)
 
-        '''Converting seconds to minutes for more practical application'''
-        data_fil['tripduration'] = data_fil['tripduration'] / 60
+    '''Converting seconds to minutes for more practical application'''
+    data_fil['tripduration'] = data_fil['tripduration'] / 60
 
-        '''It was decided that 20% of each month's data set will be randomly extracted
-        and used as the sample set. A proportion was used inside of a flat quantity in
-        order to maintain the true frequency of trips per month. This proportion is small
-        enough to work with, but still large enough to reflect the overall dataset no
-        matter which datapoints are chosen. For example, the October 2020 dataset was
-        reduced to 445,621 data points, which is equivalent to an average of
-        just under 15,000 per day, around 620 per hour, and 10 per minute.'''
+    '''It was decided that 20% of each month's data set will be randomly extracted
+    and used as the sample set. A proportion was used inside of a flat quantity in
+    order to maintain the true frequency of trips per month. This proportion is small
+    enough to work with, but still large enough to reflect the overall dataset no
+    matter which datapoints are chosen. For example, the October 2020 dataset was
+    reduced to 445,621 data points, which is equivalent to an average of
+    just under 15,000 per day, around 620 per hour, and 10 per minute.'''
 
-        '''In order to make sure the sample set statistically represents the original data
-        to a certain degree, the mean of the sample trip durations is checked to make sure
-        it is within 0.25 standard deviations from the population mean. If it is not in this
-        range, the sample is continually regenerated until this requirement is met.'''
-        lower_bound = data_fil.tripduration.mean() - 0.25 * data_fil.tripduration.std()
-        upper_bound = data_fil.tripduration.mean() + 0.25 * data_fil.tripduration.std()
-        def gen_sample():
-            piece = data_fil.sample(frac=0.20, axis=0)
-            return piece
-            sample = gen_sample()
-            sam_td_mn = sample.tripduration.mean()
-            while sam_td_mn > 0:
-                if (sam_td_mn > lower_bound) & (sam_td_mn < upper_bound):
-                    break
-                else:
-                    sample = gen_sample()
+    '''In order to make sure the sample set statistically represents the original data
+    to a certain degree, the mean of the sample trip durations is checked to make sure
+    it is within 0.25 standard deviations from the population mean. If it is not in this
+    range, the sample is continually regenerated until this requirement is met.'''
+    lower_bound = data_fil.tripduration.mean() - 0.25 * data_fil.tripduration.std()
+    upper_bound = data_fil.tripduration.mean() + 0.25 * data_fil.tripduration.std()
+    def gen_sample():
+        piece = data_fil.sample(frac=0.20, axis=0)
+        return piece
+        sample = gen_sample()
+        sam_td_mn = sample.tripduration.mean()
+        while sam_td_mn > 0:
+            if (sam_td_mn > lower_bound) & (sam_td_mn < upper_bound):
+                break
+            else:
+                sample = gen_sample()
 
-        '''When the sample is taken, the original indices are kept. In order to be able
-        to properly index any given data set, the index is reset from 0 to the length of
-        the sample.'''
-        sample.reset_index(drop=True, inplace=True)
+    '''When the sample is taken, the original indices are kept. In order to be able
+    to properly index any given data set, the index is reset from 0 to the length of
+    the sample.'''
+    sample.reset_index(drop=True, inplace=True)
 
-        '''Extracting year and month from starttime column'''
-        for i in str(len(sample)):
-            sample['year'] = sample.starttime[int(i)][0:4]
-            sample['month'] = sample.starttime[int(i)][5:7]
-        return sample
+    '''Extracting year and month from starttime column'''
+    for i in str(len(sample)):
+        sample['year'] = sample.starttime[int(i)][0:4]
+        sample['month'] = sample.starttime[int(i)][5:7]
+    return sample
 
+# --- PROGRAM PROPER -----------------------------------
+def program_proper():
     # --- CSV Redux, Concatenation, and Extraction
     '''Because of the size of each original data file, it was better to run them through
     individually instead of all at once (hence the lack of a for loop in the csv_redux
@@ -112,16 +113,9 @@ def setup():
     nov20 = csv_redux('input\znov2019-citibike-tripdata.csv')
     '''Once all the original datasets are reduced, they are all concatenated into a
     new master dataset for use in the program proper.'''
-    comb = pd.concat([jan19, feb19, mar19, apr19, may19, jun19, jul19, aug19, sep19,
+    md = pd.concat([jan19, feb19, mar19, apr19, may19, jun19, jul19, aug19, sep19,
               oct19, nov19, dec19, jan20, feb20, mar20, apr20, may20, jun20,
               jul20, aug20, sep20, oct20, nov20])
-    comb.to_csv('masterdata.csv')
-
-setup()
-
-# --- PROGRAM PROPER ------------------------------
-def program_proper():
-    md = pd.read_csv('masterdata.csv')
 
     # --- Graphing/Plotting Labels ------------------------------
     # Label(s) for all figures
@@ -168,7 +162,7 @@ def program_proper():
 
     # Creating Grid of Comparison Figures by Month Overall
 
-    fig, ax = plt.subplots(nrows=99, ncols=2, figsize=(15, 20))
+    fig, ax = plt.subplots(nrows=9, ncols=2, figsize=(15, 20))
 
     # Titles
     ovr_title_frq = 'Overall CitiBike Trips per Month'
@@ -468,126 +462,128 @@ def program_proper():
     plt.show()
 
     # --- REGRESSION LINES ------------------------------------------
-
+    '''Because the regression model can't take in months, they have to be replaced
+    with the corresponding indices.'''
+    xmonths = 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
     # --- REGRESSION LINES: FULL 2020 MODEL -------------------------
     '''From the plotted data points, polynomial regression models were derived from
     the 2020 data.
     '''
-    fig, ax = plt.subplots(nrows=3, ncols=2, figsize=(15, 15))
+    fig1, ax1 = plt.subplots(nrows=3, ncols=2, figsize=(15, 15))
 
     # Overall Number of Trips Monthly
-    ax[0, 0].scatter(months, ovr19cnt, label='2019')
-    ax[0, 0].scatter(months11, ovr20cnt[0:11], label='2020')
-    ax[0, 0].set_title(ovr_title_frq, weight='bold')
-    ax[0, 0].set_xlabel(x_lab)
-    ax[0, 0].set_ylabel(y_lab_frq)
-    ax[0, 0].grid(ls='--')
-    ax[0, 0].legend()
+    ax1[0, 0].scatter(months, ovr19cnt, label='2019')
+    ax1[0, 0].scatter(months11, ovr20cnt[0:11], label='2020')
+    ax1[0, 0].set_title(ovr_title_frq, weight='bold')
+    ax1[0, 0].set_xlabel(x_lab)
+    ax1[0, 0].set_ylabel(y_lab_frq)
+    ax1[0, 0].grid(ls='--')
+    ax1[0, 0].legend()
     ovr19cnt_poly = np.poly1d(np.polyfit(xmonths, ovr19cnt, 3))
     ovr20cnt_poly = np.poly1d(np.polyfit(xmonths[0:11], ovr20cnt[0:11], 3))
-    ax[0, 0].plot(xmonths, ovr19cnt_poly(xmonths))
-    ax[0, 0].plot(xmonths, ovr20cnt_poly(xmonths))
+    ax1[0, 0].plot(xmonths, ovr19cnt_poly(xmonths))
+    ax1[0, 0].plot(xmonths, ovr20cnt_poly(xmonths))
 
     # Overall Average Monthly Trip Duration
-    ax[0, 1].scatter(months, ovr19avg, label='2019')
-    ax[0, 1].scatter(months, ovr20avg, label='2020')
-    ax[0, 1].set_title(ovr_title_avg, weight='bold')
-    ax[0, 1].set_xlabel(x_lab)
-    ax[0, 1].set_ylabel(y_lab_avg)
-    ax[0, 1].grid(ls='--')
-    ax[0, 1].legend()
+    ax1[0, 1].scatter(months, ovr19avg, label='2019')
+    ax1[0, 1].scatter(months, ovr20avg, label='2020')
+    ax1[0, 1].set_title(ovr_title_avg, weight='bold')
+    ax1[0, 1].set_xlabel(x_lab)
+    ax1[0, 1].set_ylabel(y_lab_avg)
+    ax1[0, 1].grid(ls='--')
+    ax1[0, 1].legend()
     ovr19avg_poly = np.poly1d(np.polyfit(xmonths, ovr19avg, 3))
     ovr20avg_poly = np.poly1d(np.polyfit(xmonths[0:11], ovr20avg[0:11], 3))
-    ax[0, 1].plot(xmonths, ovr19avg_poly(xmonths))
-    ax[0, 1].plot(xmonths, ovr20avg_poly(xmonths))
+    ax1[0, 1].plot(xmonths, ovr19avg_poly(xmonths))
+    ax1[0, 1].plot(xmonths, ovr20avg_poly(xmonths))
 
     # Number of Trips Monthly per Gender
-    ax[1, 0].scatter(months, o19cnt, color='indigo', label='2019 Other/Unknown')
-    ax[1, 0].scatter(months11, o20cnt[0:11], color='forestgreen', label='2020 Other/Unknown')
-    ax[1, 0].scatter(months, m19cnt, color='blue', label='2019 Male')
-    ax[1, 0].scatter(months11, m20cnt[0:11], color='orange', label='2020 Male')
-    ax[1, 0].scatter(months, f19cnt, color='coral', label='2019 Female')
-    ax[1, 0].scatter(months11, f20cnt[0:11], color='teal', label='2020 Female')
-    ax[1, 0].set_title(gen_title_frq, weight='bold')
-    ax[1, 0].set_xlabel(x_lab)
-    ax[1, 0].set_ylabel(y_lab_frq)
-    ax[1, 0].grid(ls='--')
-    ax[1, 0].legend()
+    ax1[1, 0].scatter(months, o19cnt, color='indigo', label='2019 Other/Unknown')
+    ax1[1, 0].scatter(months11, o20cnt[0:11], color='forestgreen', label='2020 Other/Unknown')
+    ax1[1, 0].scatter(months, m19cnt, color='blue', label='2019 Male')
+    ax1[1, 0].scatter(months11, m20cnt[0:11], color='orange', label='2020 Male')
+    ax1[1, 0].scatter(months, f19cnt, color='coral', label='2019 Female')
+    ax1[1, 0].scatter(months11, f20cnt[0:11], color='teal', label='2020 Female')
+    ax1[1, 0].set_title(gen_title_frq, weight='bold')
+    ax1[1, 0].set_xlabel(x_lab)
+    ax1[1, 0].set_ylabel(y_lab_frq)
+    ax1[1, 0].grid(ls='--')
+    ax1[1, 0].legend()
     o19cnt_poly = np.poly1d(np.polyfit(xmonths, o19cnt, 3))
     o20cnt_poly = np.poly1d(np.polyfit(xmonths[0:11], o20cnt[0:11], 3))
-    ax[1, 0].plot(xmonths, o19cnt_poly(xmonths), color='indigo')
-    ax[1, 0].plot(xmonths, o20cnt_poly(xmonths), color='forestgreen')
+    ax1[1, 0].plot(xmonths, o19cnt_poly(xmonths), color='indigo')
+    ax1[1, 0].plot(xmonths, o20cnt_poly(xmonths), color='forestgreen')
     m19cnt_poly = np.poly1d(np.polyfit(xmonths, m19cnt, 3))
     m20cnt_poly = np.poly1d(np.polyfit(xmonths[0:11], m20cnt[0:11], 3))
-    ax[1, 0].plot(xmonths, m19cnt_poly(xmonths), color='blue')
-    ax[1, 0].plot(xmonths, m20cnt_poly(xmonths), color='orange')
+    ax1[1, 0].plot(xmonths, m19cnt_poly(xmonths), color='blue')
+    ax1[1, 0].plot(xmonths, m20cnt_poly(xmonths), color='orange')
     f19cnt_poly = np.poly1d(np.polyfit(xmonths, f19cnt, 3))
     f20cnt_poly = np.poly1d(np.polyfit(xmonths[0:11], f20cnt[0:11], 3))
-    ax[1, 0].plot(xmonths, f19cnt_poly(xmonths), color='coral')
-    ax[1, 0].plot(xmonths, f20cnt_poly(xmonths), color='teal')
+    ax1[1, 0].plot(xmonths, f19cnt_poly(xmonths), color='coral')
+    ax1[1, 0].plot(xmonths, f20cnt_poly(xmonths), color='teal')
 
     # Average Monthly Trip Duration per Gender
-    ax[1, 1].scatter(months, o19avg, color='indigo', label='2019 Other/Unknown')
-    ax[1, 1].scatter(months, o20avg, color='forestgreen', label='2020 Other/Unknown')
-    ax[1, 1].scatter(months, m19avg, color='blue', label='2019 Male')
-    ax[1, 1].scatter(months, m20avg, color='orange', label='2020 Male')
-    ax[1, 1].scatter(months, f19avg, color='coral', label='2019 Female')
-    ax[1, 1].scatter(months, f20avg, color='teal', label='2020 Female')
-    ax[1, 1].set_title(gen_title_avg, weight='bold')
-    ax[1, 1].set_xlabel(x_lab)
-    ax[1, 1].set_ylabel(y_lab_avg)
-    ax[1, 1].grid(ls='--')
-    ax[1, 1].legend()
+    ax1[1, 1].scatter(months, o19avg, color='indigo', label='2019 Other/Unknown')
+    ax1[1, 1].scatter(months, o20avg, color='forestgreen', label='2020 Other/Unknown')
+    ax1[1, 1].scatter(months, m19avg, color='blue', label='2019 Male')
+    ax1[1, 1].scatter(months, m20avg, color='orange', label='2020 Male')
+    ax1[1, 1].scatter(months, f19avg, color='coral', label='2019 Female')
+    ax1[1, 1].scatter(months, f20avg, color='teal', label='2020 Female')
+    ax1[1, 1].set_title(gen_title_avg, weight='bold')
+    ax1[1, 1].set_xlabel(x_lab)
+    ax1[1, 1].set_ylabel(y_lab_avg)
+    ax1[1, 1].grid(ls='--')
+    ax1[1, 1].legend()
     o19avg_poly = np.poly1d(np.polyfit(xmonths, o19avg, 3))
     o20avg_poly = np.poly1d(np.polyfit(xmonths[0:11], o20avg[0:11], 3))
-    ax[1, 1].plot(xmonths, o19avg_poly(xmonths), color='indigo')
-    ax[1, 1].plot(xmonths, o20avg_poly(xmonths), color='forestgreen')
+    ax1[1, 1].plot(xmonths, o19avg_poly(xmonths), color='indigo')
+    ax1[1, 1].plot(xmonths, o20avg_poly(xmonths), color='forestgreen')
     m19avg_poly = np.poly1d(np.polyfit(xmonths, m19avg, 3))
     m20avg_poly = np.poly1d(np.polyfit(xmonths[0:11], m20avg[0:11], 3))
-    ax[1, 1].plot(xmonths, m19avg_poly(xmonths), color='blue')
-    ax[1, 1].plot(xmonths, m20avg_poly(xmonths), color='orange')
+    ax1[1, 1].plot(xmonths, m19avg_poly(xmonths), color='blue')
+    ax1[1, 1].plot(xmonths, m20avg_poly(xmonths), color='orange')
     f19avg_poly = np.poly1d(np.polyfit(xmonths, f19avg, 3))
     f20avg_poly = np.poly1d(np.polyfit(xmonths[0:11], f20avg[0:11], 3))
-    ax[1, 1].plot(xmonths, f19avg_poly(xmonths), color='coral')
-    ax[1, 1].plot(xmonths, f20avg_poly(xmonths), color='teal')
+    ax1[1, 1].plot(xmonths, f19avg_poly(xmonths), color='coral')
+    ax1[1, 1].plot(xmonths, f20avg_poly(xmonths), color='teal')
 
     # Number of Trips Monthly per User Type
-    ax[2, 0].scatter(months, cus19cnt, color='blue', label='2019 Customers')
-    ax[2, 0].scatter(months11, cus20cnt[0:11], color='orange', label='2020 Customers')
-    ax[2, 0].scatter(months, sub19cnt, color='indigo', label='2019 Subscribers')
-    ax[2, 0].scatter(months11, sub20cnt[0:11], color='teal', label='2020 Subscribers')
-    ax[2, 0].set_title(user_title_frq, weight='bold')
-    ax[2, 0].set_xlabel(x_lab)
-    ax[2, 0].set_ylabel(y_lab_frq)
-    ax[2, 0].grid(ls='--')
-    ax[2, 0].legend()
+    ax1[2, 0].scatter(months, cus19cnt, color='blue', label='2019 Customers')
+    ax1[2, 0].scatter(months11, cus20cnt[0:11], color='orange', label='2020 Customers')
+    ax1[2, 0].scatter(months, sub19cnt, color='indigo', label='2019 Subscribers')
+    ax1[2, 0].scatter(months11, sub20cnt[0:11], color='teal', label='2020 Subscribers')
+    ax1[2, 0].set_title(user_title_frq, weight='bold')
+    ax1[2, 0].set_xlabel(x_lab)
+    ax1[2, 0].set_ylabel(y_lab_frq)
+    ax1[2, 0].grid(ls='--')
+    ax1[2, 0].legend()
     cus19cnt_poly = np.poly1d(np.polyfit(xmonths, cus19cnt, 3))
     cus20cnt_poly = np.poly1d(np.polyfit(xmonths[0:11], cus20cnt[0:11], 3))
-    ax[2, 0].plot(xmonths, cus19cnt_poly(xmonths), color='blue')
-    ax[2, 0].plot(xmonths, cus20cnt_poly(xmonths), color='orange')
+    ax1[2, 0].plot(xmonths, cus19cnt_poly(xmonths), color='blue')
+    ax1[2, 0].plot(xmonths, cus20cnt_poly(xmonths), color='orange')
     sub19cnt_poly = np.poly1d(np.polyfit(xmonths, sub19cnt, 3))
     sub20cnt_poly = np.poly1d(np.polyfit(xmonths[0:11], sub20cnt[0:11], 3))
-    ax[2, 0].plot(xmonths, sub19cnt_poly(xmonths), color='indigo')
-    ax[2, 0].plot(xmonths, sub20cnt_poly(xmonths), color='teal')
+    ax1[2, 0].plot(xmonths, sub19cnt_poly(xmonths), color='indigo')
+    ax1[2, 0].plot(xmonths, sub20cnt_poly(xmonths), color='teal')
 
     # Average Monthly Trip Duration per User Type
-    ax[2, 1].scatter(months, cus19avg, color='blue', label='2019 Customers')
-    ax[2, 1].scatter(months, cus20avg, color='orange', label='2020 Customers')
-    ax[2, 1].scatter(months, sub19avg, color='indigo', label='2019 Subscribers')
-    ax[2, 1].scatter(months, sub20avg, color='teal', label='2020 Subscribers')
-    ax[2, 1].set_title(user_title_avg, weight='bold')
-    ax[2, 1].set_xlabel(x_lab)
-    ax[2, 1].set_ylabel(y_lab_avg)
-    ax[2, 1].grid(ls='--')
-    ax[2, 1].legend()
+    ax1[2, 1].scatter(months, cus19avg, color='blue', label='2019 Customers')
+    ax1[2, 1].scatter(months, cus20avg, color='orange', label='2020 Customers')
+    ax1[2, 1].scatter(months, sub19avg, color='indigo', label='2019 Subscribers')
+    ax1[2, 1].scatter(months, sub20avg, color='teal', label='2020 Subscribers')
+    ax1[2, 1].set_title(user_title_avg, weight='bold')
+    ax1[2, 1].set_xlabel(x_lab)
+    ax1[2, 1].set_ylabel(y_lab_avg)
+    ax1[2, 1].grid(ls='--')
+    ax1[2, 1].legend()
     cus19avg_poly = np.poly1d(np.polyfit(xmonths, cus19avg, 3))
     cus20avg_poly = np.poly1d(np.polyfit(xmonths[0:11], cus20avg[0:11], 3))
-    ax[2, 1].plot(xmonths, cus19avg_poly(xmonths), color='blue')
-    ax[2, 1].plot(xmonths, cus20avg_poly(xmonths), color='orange')
+    ax1[2, 1].plot(xmonths, cus19avg_poly(xmonths), color='blue')
+    ax1[2, 1].plot(xmonths, cus20avg_poly(xmonths), color='orange')
     sub19avg_poly = np.poly1d(np.polyfit(xmonths, sub19avg, 3))
     sub20avg_poly = np.poly1d(np.polyfit(xmonths[0:11], sub20avg[0:11], 3))
-    ax[2, 1].plot(xmonths, sub19avg_poly(xmonths), color='indigo')
-    ax[2, 1].plot(xmonths, sub20avg_poly(xmonths), color='teal')
+    ax1[2, 1].plot(xmonths, sub19avg_poly(xmonths), color='indigo')
+    ax1[2, 1].plot(xmonths, sub20avg_poly(xmonths), color='teal')
 
     # Display
     fig.tight_layout()
@@ -614,128 +610,126 @@ def program_proper():
     cus20avg_part = cus20avg[0:2] + cus20avg[6:11]
     sub20cnt_part = sub20cnt[0:2] + sub20cnt[6:11]
     sub20avg_part = sub20avg[0:2] + sub20avg[6:11]
-    fig, ax = plt.subplots(nrows=3, ncols=2, figsize=(15, 15))
+    fig, ax2 = plt.subplots(nrows=3, ncols=2, figsize=(15, 15))
 
     # Overall Number of Trips Monthly
-    ax[0, 0].scatter(months, ovr19cnt, label='2019')
-    ax[0, 0].scatter(months11, ovr20cnt[0:11], label='2020')
-    ax[0, 0].set_title(ovr_title_frq, weight='bold')
-    ax[0, 0].set_xlabel(x_lab)
-    ax[0, 0].set_ylabel(y_lab_frq)
-    ax[0, 0].grid(ls='--')
-    ax[0, 0].legend()
+    ax2[0, 0].scatter(months, ovr19cnt, label='2019')
+    ax2[0, 0].scatter(months11, ovr20cnt[0:11], label='2020')
+    ax2[0, 0].set_title(ovr_title_frq, weight='bold')
+    ax2[0, 0].set_xlabel(x_lab)
+    ax2[0, 0].set_ylabel(y_lab_frq)
+    ax2[0, 0].grid(ls='--')
+    ax2[0, 0].legend()
     ovr19cnt_poly = np.poly1d(np.polyfit(xmonths, ovr19cnt, 3))
     ovr20cnt_polypt = np.poly1d(np.polyfit(xmn_part, ovr20cnt_part, 3))
-    ax[0, 0].plot(xmonths, ovr19cnt_poly(xmonths))
-    ax[0, 0].plot(xmonths, ovr20cnt_poly(xmonths))
+    ax2[0, 0].plot(xmonths, ovr19cnt_poly(xmonths))
+    ax2[0, 0].plot(xmonths, ovr20cnt_poly(xmonths))
 
     # Overall Average Monthly Trip Duration
-    ax[0, 1].scatter(months, ovr19avg, label='2019')
-    ax[0, 1].scatter(months, ovr20avg, label='2020')
-    ax[0, 1].set_title(ovr_title_avg, weight='bold')
-    ax[0, 1].set_xlabel(x_lab)
-    ax[0, 1].set_ylabel(y_lab_avg)
-    ax[0, 1].grid(ls='--')
-    ax[0, 1].legend()
+    ax2[0, 1].scatter(months, ovr19avg, label='2019')
+    ax2[0, 1].scatter(months, ovr20avg, label='2020')
+    ax2[0, 1].set_title(ovr_title_avg, weight='bold')
+    ax2[0, 1].set_xlabel(x_lab)
+    ax2[0, 1].set_ylabel(y_lab_avg)
+    ax2[0, 1].grid(ls='--')
+    ax2[0, 1].legend()
     ovr19avg_poly = np.poly1d(np.polyfit(xmonths, ovr19avg, 3))
     ovr20avg_polypt = np.poly1d(np.polyfit(xmn_part, ovr20avg_part, 3))
-    ax[0, 1].plot(xmonths, ovr19avg_poly(xmonths))
-    ax[0, 1].plot(xmonths, ovr20avg_poly(xmonths))
+    ax2[0, 1].plot(xmonths, ovr19avg_poly(xmonths))
+    ax2[0, 1].plot(xmonths, ovr20avg_poly(xmonths))
 
     # Number of Trips Monthly per Gender
-    ax[1, 0].scatter(months, o19cnt, color='indigo', label='2019 Other/Unknown')
-    ax[1, 0].scatter(months11, o20cnt[0:11], color='forestgreen', label='2020 Other/Unknown')
-    ax[1, 0].scatter(months, m19cnt, color='blue', label='2019 Male')
-    ax[1, 0].scatter(months11, m20cnt[0:11], color='orange', label='2020 Male')
-    ax[1, 0].scatter(months, f19cnt, color='coral', label='2019 Female')
-    ax[1, 0].scatter(months11, f20cnt[0:11], color='teal', label='2020 Female')
-    ax[1, 0].set_title(gen_title_frq, weight='bold')
-    ax[1, 0].set_xlabel(x_lab)
-    ax[1, 0].set_ylabel(y_lab_frq)
-    ax[1, 0].grid(ls='--')
-    ax[1, 0].legend()
+    ax2[1, 0].scatter(months, o19cnt, color='indigo', label='2019 Other/Unknown')
+    ax2[1, 0].scatter(months11, o20cnt[0:11], color='forestgreen', label='2020 Other/Unknown')
+    ax2[1, 0].scatter(months, m19cnt, color='blue', label='2019 Male')
+    ax2[1, 0].scatter(months11, m20cnt[0:11], color='orange', label='2020 Male')
+    ax2[1, 0].scatter(months, f19cnt, color='coral', label='2019 Female')
+    ax2[1, 0].scatter(months11, f20cnt[0:11], color='teal', label='2020 Female')
+    ax2[1, 0].set_title(gen_title_frq, weight='bold')
+    ax2[1, 0].set_xlabel(x_lab)
+    ax2[1, 0].set_ylabel(y_lab_frq)
+    ax2[1, 0].grid(ls='--')
+    ax2[1, 0].legend()
     o19cnt_poly = np.poly1d(np.polyfit(xmonths, o19cnt, 3))
     o20cnt_polypt = np.poly1d(np.polyfit(xmn_part, o20cnt_part, 3))
-    ax[1, 0].plot(xmonths, o19cnt_poly(xmonths), color='indigo')
-    ax[1, 0].plot(xmonths, o20cnt_poly(xmonths), color='forestgreen')
+    ax2[1, 0].plot(xmonths, o19cnt_poly(xmonths), color='indigo')
+    ax2[1, 0].plot(xmonths, o20cnt_poly(xmonths), color='forestgreen')
     m19cnt_poly = np.poly1d(np.polyfit(xmonths, m19cnt, 3))
     m20cnt_polypt = np.poly1d(np.polyfit(xmn_part, m20cnt_part, 3))
-    ax[1, 0].plot(xmonths, m19cnt_poly(xmonths), color='blue')
-    ax[1, 0].plot(xmonths, m20cnt_poly(xmonths), color='orange')
+    ax2[1, 0].plot(xmonths, m19cnt_poly(xmonths), color='blue')
+    ax2[1, 0].plot(xmonths, m20cnt_poly(xmonths), color='orange')
     f19cnt_poly = np.poly1d(np.polyfit(xmonths, f19cnt, 3))
     f20cnt_polypt = np.poly1d(np.polyfit(xmn_part, f20cnt_part, 3))
-    ax[1, 0].plot(xmonths, f19cnt_poly(xmonths), color='coral')
-    ax[1, 0].plot(xmonths, f20cnt_poly(xmonths), color='teal')
+    ax2[1, 0].plot(xmonths, f19cnt_poly(xmonths), color='coral')
+    ax2[1, 0].plot(xmonths, f20cnt_poly(xmonths), color='teal')
 
     # Average Monthly Trip Duration per Gender
-    ax[1, 1].scatter(months, o19avg, color='indigo', label='2019 Other/Unknown')
-    ax[1, 1].scatter(months, o20avg, color='forestgreen', label='2020 Other/Unknown')
-    ax[1, 1].scatter(months, m19avg, color='blue', label='2019 Male')
-    ax[1, 1].scatter(months, m20avg, color='orange', label='2020 Male')
-    ax[1, 1].scatter(months, f19avg, color='coral', label='2019 Female')
-    ax[1, 1].scatter(months, f20avg, color='teal', label='2020 Female')
-    ax[1, 1].set_title(gen_title_avg, weight='bold')
-    ax[1, 1].set_xlabel(x_lab)
-    ax[1, 1].set_ylabel(y_lab_avg)
-    ax[1, 1].grid(ls='--')
-    ax[1, 1].legend()
+    ax2[1, 1].scatter(months, o19avg, color='indigo', label='2019 Other/Unknown')
+    ax2[1, 1].scatter(months, o20avg, color='forestgreen', label='2020 Other/Unknown')
+    ax2[1, 1].scatter(months, m19avg, color='blue', label='2019 Male')
+    ax2[1, 1].scatter(months, m20avg, color='orange', label='2020 Male')
+    ax2[1, 1].scatter(months, f19avg, color='coral', label='2019 Female')
+    ax2[1, 1].scatter(months, f20avg, color='teal', label='2020 Female')
+    ax2[1, 1].set_title(gen_title_avg, weight='bold')
+    ax2[1, 1].set_xlabel(x_lab)
+    ax2[1, 1].set_ylabel(y_lab_avg)
+    ax2[1, 1].grid(ls='--')
+    ax2[1, 1].legend()
     o19avg_poly = np.poly1d(np.polyfit(xmonths, o19avg, 3))
     o20avg_polypt = np.poly1d(np.polyfit(xmn_part, o20avg_part, 3))
-    ax[1, 1].plot(xmonths, o19avg_poly(xmonths), color='indigo')
-    ax[1, 1].plot(xmonths, o20avg_poly(xmonths), color='forestgreen')
+    ax2[1, 1].plot(xmonths, o19avg_poly(xmonths), color='indigo')
+    ax2[1, 1].plot(xmonths, o20avg_poly(xmonths), color='forestgreen')
     m19avg_poly = np.poly1d(np.polyfit(xmonths, m19avg, 3))
     m20avg_polypt = np.poly1d(np.polyfit(xmn_part, m20avg_part, 3))
-    ax[1, 1].plot(xmonths, m19avg_poly(xmonths), color='blue')
-    ax[1, 1].plot(xmonths, m20avg_poly(xmonths), color='orange')
+    ax2[1, 1].plot(xmonths, m19avg_poly(xmonths), color='blue')
+    ax2[1, 1].plot(xmonths, m20avg_poly(xmonths), color='orange')
     f19avg_poly = np.poly1d(np.polyfit(xmonths, f19avg, 3))
     f20avg_polypt = np.poly1d(np.polyfit(xmn_part, f20avg_part, 3))
-    ax[1, 1].plot(xmonths, f19avg_poly(xmonths), color='coral')
-    ax[1, 1].plot(xmonths, f20avg_poly(xmonths), color='teal')
+    ax2[1, 1].plot(xmonths, f19avg_poly(xmonths), color='coral')
+    ax2[1, 1].plot(xmonths, f20avg_poly(xmonths), color='teal')
 
     # Number of Trips Monthly per User Type
-    ax[2, 0].scatter(months, cus19cnt, color='blue', label='2019 Customers')
-    ax[2, 0].scatter(months11, cus20cnt[0:11], color='orange', label='2020 Customers')
-    ax[2, 0].scatter(months, sub19cnt, color='indigo', label='2019 Subscribers')
-    ax[2, 0].scatter(months11, sub20cnt[0:11], color='teal', label='2020 Subscribers')
-    ax[2, 0].set_title(user_title_frq, weight='bold')
-    ax[2, 0].set_xlabel(x_lab)
-    ax[2, 0].set_ylabel(y_lab_frq)
-    ax[2, 0].grid(ls='--')
-    ax[2, 0].legend()
+    ax2[2, 0].scatter(months, cus19cnt, color='blue', label='2019 Customers')
+    ax2[2, 0].scatter(months11, cus20cnt[0:11], color='orange', label='2020 Customers')
+    ax2[2, 0].scatter(months, sub19cnt, color='indigo', label='2019 Subscribers')
+    ax2[2, 0].scatter(months11, sub20cnt[0:11], color='teal', label='2020 Subscribers')
+    ax2[2, 0].set_title(user_title_frq, weight='bold')
+    ax2[2, 0].set_xlabel(x_lab)
+    ax2[2, 0].set_ylabel(y_lab_frq)
+    ax2[2, 0].grid(ls='--')
+    ax2[2, 0].legend()
     cus19cnt_poly = np.poly1d(np.polyfit(xmonths, cus19cnt, 3))
     cus20cnt_polypt = np.poly1d(np.polyfit(xmn_part, cus20cnt_part, 3))
-    ax[2, 0].plot(xmonths, cus19cnt_poly(xmonths), color='blue')
-    ax[2, 0].plot(xmonths, cus20cnt_poly(xmonths), color='orange')
+    ax2[2, 0].plot(xmonths, cus19cnt_poly(xmonths), color='blue')
+    ax2[2, 0].plot(xmonths, cus20cnt_poly(xmonths), color='orange')
     sub19cnt_poly = np.poly1d(np.polyfit(xmonths, sub19cnt, 3))
     sub20cnt_polypt = np.poly1d(np.polyfit(xmn_part, sub20cnt_part, 3))
-    ax[2, 0].plot(xmonths, sub19cnt_poly(xmonths), color='indigo')
-    ax[2, 0].plot(xmonths, sub20cnt_poly(xmonths), color='teal')
+    ax2[2, 0].plot(xmonths, sub19cnt_poly(xmonths), color='indigo')
+    ax2[2, 0].plot(xmonths, sub20cnt_poly(xmonths), color='teal')
 
     # Average Monthly Trip Duration per User Type
-    ax[2, 1].scatter(months, cus19avg, color='blue', label='2019 Customers')
-    ax[2, 1].scatter(months, cus20avg, color='orange', label='2020 Customers')
-    ax[2, 1].scatter(months, sub19avg, color='indigo', label='2019 Subscribers')
-    ax[2, 1].scatter(months, sub20avg, color='teal', label='2020 Subscribers')
-    ax[2, 1].set_title(user_title_avg, weight='bold')
-    ax[2, 1].set_xlabel(x_lab)
-    ax[2, 1].set_ylabel(y_lab_avg)
-    ax[2, 1].grid(ls='--')
-    ax[2, 1].legend()
+    ax2[2, 1].scatter(months, cus19avg, color='blue', label='2019 Customers')
+    ax2[2, 1].scatter(months, cus20avg, color='orange', label='2020 Customers')
+    ax2[2, 1].scatter(months, sub19avg, color='indigo', label='2019 Subscribers')
+    ax2[2, 1].scatter(months, sub20avg, color='teal', label='2020 Subscribers')
+    ax2[2, 1].set_title(user_title_avg, weight='bold')
+    ax2[2, 1].set_xlabel(x_lab)
+    ax2[2, 1].set_ylabel(y_lab_avg)
+    ax2[2, 1].grid(ls='--')
+    ax2[2, 1].legend()
     cus19avg_poly = np.poly1d(np.polyfit(xmonths, cus19avg, 3))
     cus20avg_polypt = np.poly1d(np.polyfit(xmn_part, cus20avg_part, 3))
-    ax[2, 1].plot(xmonths, cus19avg_poly(xmonths), color='blue')
-    ax[2, 1].plot(xmonths, cus20avg_poly(xmonths), color='orange')
+    ax2[2, 1].plot(xmonths, cus19avg_poly(xmonths), color='blue')
+    ax2[2, 1].plot(xmonths, cus20avg_poly(xmonths), color='orange')
     sub19avg_poly = np.poly1d(np.polyfit(xmonths, sub19avg, 3))
     sub20avg_polypt = np.poly1d(np.polyfit(xmn_part, sub20avg_part, 3))
-    ax[2, 1].plot(xmonths, sub19avg_poly(xmonths), color='indigo')
-    ax[2, 1].plot(xmonths, sub20avg_poly(xmonths), color='teal')
+    ax2[2, 1].plot(xmonths, sub19avg_poly(xmonths), color='indigo')
+    ax2[2, 1].plot(xmonths, sub20avg_poly(xmonths), color='teal')
 
     # Display
     fig.tight_layout()
 
     plt.show()
-
-program_proper()
 
 # --- DECEMBER 2020 PREDICTIONS TABLE  -----------------------
 
@@ -756,4 +750,6 @@ def preds(month):
                        "Average Trip Duration of Customers (min)", "Average Trip Duration of Subscribers (min)"]
   return preds_summary
 
-preds(11)
+def overlord():
+    program_proper()
+    print(preds(11))
