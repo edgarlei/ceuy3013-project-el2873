@@ -753,3 +753,5 @@ def preds(month):
 def overlord():
     program_proper()
     print(preds(11))
+
+overlord()

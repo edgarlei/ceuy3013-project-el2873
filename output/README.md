@@ -7,3 +7,5 @@ The program returns two types of outputs:
 * tabulated predictions for a particular month(s) -- in this instance: December 2020 (labeled 5)
 
 Each of the outputs are presented as part of the program, but they are also stored here for quicker access, given how long it takes the program to run and how many there are for the program to return.
+
+'masterdata.csv,' which is a byproduct of the program, can also be found here.
