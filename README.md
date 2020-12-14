@@ -46,7 +46,7 @@ $ pip install -r requirements.txt
 
 ## How to use the program
 
-The program consists of three major functions: Setup, Program Proper, and Predictions. Below is a more in-depth walkthrough of what each function does.
+The program consists of three major functions: Setup, Program Proper, and Predictions. Below is a more in-depth walkthrough of what each function does, since no actions are needed from the user except for the input csv files.
 
 ### Setup
 
@@ -155,6 +155,8 @@ These predictions are then tabulated and presented.
 
 In hindsight, I feel like I definitely bit off a bit more than I could chew. I was
 excited -- perhaps a bit too much -- to play around with CitiBike data, and underestimated
-the task I had set out for myself. If there is one part of the program that I wish I
+the task I had set out for myself. I also had some trouble trying to follow the structure
+of the deliverable portion of the project as, unlike many other students' projects, there
+was less of a hands-on input-output flow. If there is one part of the program that I wish I
 could improve, it would be streamlining the process by which figures are made so that
 there is less redundancy in the code, which should make it run smoother and faster.
