@@ -755,3 +755,6 @@ def overlord():
     print(preds(11))
 
 overlord()
+
+# The original code from Colab with minor changes took around 3 minutes to run. 
+# The code as it is now with the suggested changes takes 10-12 minutes to run, with less consistency in execution.
