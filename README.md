@@ -46,6 +46,10 @@ $ pip install -r requirements.txt
 
 ## How to use the program
 
+The program consists of three major functions: Setup, Program Proper, and Predictions. Below is a more in-depth walkthrough of what each function does.
+
+### Setup
+
 Before any calculations or analysis can be done, the data files need to be manipulated. Given the sheer size of each file, it would be unwieldy and inefficient to use them at face value. From a statistical analysis standpoint, having so much data could lead to overfitting, which in turn could make the regression models too specific to be very useful.
 
 First, each data file is run through the data reduction function. Before a sample is taken, outliers and data columns deemed unnecessary for this program are removed. The function takes a 20% sample, which is big enough to still be statistically significant but small enough to still be efficient and applicable. Once a sample is taken, it is checked to see if it still statistically resembles the entire dataset closely enough; if not, samples are continuously checked until one meets the aforementioned requirements.
@@ -58,10 +62,12 @@ All of the reduced data files are then concatenated into one master dataset and 
 
 ```python
 >>> comb = pd.concat([jan19, feb19, mar19, apr19, may19, jun19, jul19, aug19, sep19,
-                  oct19, nov19, dec19, jan20, feb20, mar20, apr20, may20, jun20, 
+                  oct19, nov19, dec19, jan20, feb20, mar20, apr20, may20, jun20,
                   jul20, aug20, sep20, oct20, nov20])
 >>> comb.to_csv('masterdata.csv')
 ```
+
+### Program Proper
 
 For the overall dataset, as well as for each sub-categorization, the following was done: (Here, the process for the overall dataset is shown.)
 
@@ -108,7 +114,7 @@ fig.tight_layout()
 plt.show()
 ```
 
-This process is repeated for the following breakdowns: by gender, by user type, and by age bracket.
+This process is repeated for the following breakdowns: by gender and by user type.
 
 Finally the regression models for each line plot are created and graphed, of which there were two regression models: full 2020 and partial 2020. The below example shows the full 2020 regression model for the overall number of trips monthly.
 
@@ -129,3 +135,26 @@ ax[0, 0].plot(xmonths, ovr19cnt_poly(xmonths))
 ax[0, 0].plot(xmonths, ovr20cnt_poly(xmonths))
 ```
 
+### Predictions
+
+Using the polynomial regression models that were just derived, predictions can be made for December 2020, the next month for which data will be released, at the time of the project's conclusion.
+
+```python
+>>> full2020 = [ovr20cnt_poly(month), o20cnt_poly(month), m20cnt_poly(month), f20cnt_poly(month), cus20cnt_poly(month), sub20cnt_poly(month), ovr20avg_poly(month), o20avg_poly(month),
+m20avg_poly(month), f20avg_poly(month), cus20avg_poly(month), sub20avg_poly(month)]
+```
+
+These predictions are then tabulated and presented.
+```python
+>>> preds_summary = pd.DataFrame({"Full 2020": full2020, "Partial 2020": part2020})
+```
+
+---
+
+## Programmer's Notes
+
+In hindsight, I feel like I definitely bit off a bit more than I could chew. I was
+excited -- perhaps a bit too much -- to play around with CitiBike data, and underestimated
+the task I had set out for myself. If there is one part of the program that I wish I
+could improve, it would be streamlining the process by which figures are made so that
+there is less redundancy in the code, which should make it run smoother and faster.
